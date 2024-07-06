@@ -171,22 +171,20 @@ class ExtractorBase(metaclass=ABCMeta):
                 List of features extracted from the image. Each feature is a 2D NumPy array
         """
 
-        mask = None
         if isinstance(img, str):
             im_path = Path(img)
         elif isinstance(img, Image):
             im_path = img.path
         elif isinstance(img, Path):
             im_path = img
-        elif isinstance(img, ImagePathAux):
-            im_path = img
-            mask = img.mask
         else:
             raise TypeError(
                 "Invalid image path. 'img' must be a string, a Path or an Image object"
             )
         if not im_path.exists():
             raise ValueError(f"Image {im_path} does not exist")
+
+        mask = im_path.mask if isinstance(im_path, ImagePathAux) else None
 
         output_dir = Path(self._config["general"]["output_dir"])
         feature_path = output_dir / "features.h5"

@@ -182,7 +182,7 @@ class SuperPoint(nn.Module):
         # mask is treated as weights
         mask = data.get("mask", None)
         if mask is not None:
-            scores = scores * mask
+            scores = scores * mask.squeeze(0)
 
         # Extract keypoints
         keypoints = [

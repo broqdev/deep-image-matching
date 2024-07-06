@@ -31,6 +31,8 @@ img_matching = ImageMatching(
     overlap=config.general["overlap"],
     existing_colmap_model=config.general["db_path"],
     custom_config=config.as_dict(),
+    masks_dir=masks_dir,
+    mask_type=config.general["mask_type"],
 )
 
 # Generate pairs to be matched

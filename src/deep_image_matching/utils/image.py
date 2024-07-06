@@ -65,6 +65,38 @@ def resize_image(
         raise ValueError(f"Unknown interpolation {interp}.")
     return resized
 
+class ImagePathAux(PosixPath):
+    def __new__(cls, *args, **kwargs):
+        kwargs.pop("aux", None)
+        obj = super().__new__(cls, *args, **kwargs)
+        return obj
+
+    def __init__(self, image_path: Path, aux: dict = None):
+        self.aux = aux or {}
+
+    @property
+    def mask(self):
+        return self.aux.get("mask", None)
+
+def _load_masks(mask_dir: Path, mask_type: str):
+    if mask_dir is None:
+        return {}
+
+    mask_paths = mask_dir.glob("*")
+    mask_paths = [(p.stem, p) for p in mask_dir.glob("*") if p.suffix in IMAGE_EXT]
+    logger.info(f"Found {len(mask_paths)} masks in {mask_dir}")
+
+    def _convert_mask(mask_path, mask_type):
+        if mask_type == "fg":
+            mask_img = cv2.imread(mask_path, cv2.IMREAD_GRAYSCALE)
+            mask_bool = ~(mask_img > 0)
+            mask = np.expand_dims(mask_bool, axis=-1).astype(np.uint8) * 255
+            return mask
+        else:
+            raise ValueError(f"Unknown mask type {mask_type}")
+
+    masks = [(name, _convert_mask(path, mask_type)) for name, path in mask_paths]
+    return dict(masks)
 
 class Image:
     """A class representing an image.
@@ -85,14 +117,14 @@ class Image:
     DATETIME_FMT = "%Y:%m:%d %H:%M:%S"
     DATE_FORMATS = [DATETIME_FMT, DATE_FMT, TIME_FMT]
 
-    def __init__(self, path: Union[str, Path], id: int = None) -> None:
+    def __init__(self, path: Union[str, Path, ImagePathAux], id: int = None) -> None:
         """
         __init__ Create Image object as a lazy loader for image data
 
         Args:
             path (Union[str, Path]): path to the image
         """
-        path = Path(path)
+        path = Path(path) if isinstance(path, str) else path
         if not path.exists():
             raise ValueError(f"File {path} does not exist")
 
@@ -385,39 +417,6 @@ class Image:
         )
         return K
 
-class ImagePathAux(PosixPath):
-    def __new__(cls, *args, **kwargs):
-        kwargs.pop("aux", None)
-        obj = super().__new__(cls, *args, **kwargs)
-        return obj
-
-    def __init__(self, image_path: Path, aux: dict = None):
-        self.aux = aux or {}
-
-    @property
-    def mask(self):
-        return self.aux.get("mask", None)
-
-def _load_masks(mask_dir: Path, mask_type: str):
-    if mask_dir is None:
-        return {}
-
-    mask_paths = mask_dir.glob("*")
-    mask_paths = [(p.stem, p) for p in mask_dir.glob("*") if p.suffix in IMAGE_EXT]
-    logger.info(f"Found {len(mask_paths)} masks in {mask_dir}")
-
-    def _convert_mask(mask_path, mask_type):
-        if mask_type == "fg":
-            mask_img = cv2.imread(mask_path, cv2.IMREAD_GRAYSCALE)
-            mask_bool = ~(mask_img > 0)
-            mask = np.expand_dims(mask_bool, axis=-1).astype(np.uint8) * 255
-            return mask
-        else:
-            raise ValueError(f"Unknown mask type {mask_type}")
-
-    masks = [(name, _convert_mask(path, mask_type)) for name, path in mask_paths]
-    return dict(masks)
-
 class ImageList:
     """
     Represents a collection of Image objects
@@ -485,7 +484,7 @@ class ImageList:
         self.current_idx += 1
         return self.images[cur]
 
-    def add_image(self, path: Path, img_id: int):
+    def add_image(self, path: Union[Path, ImagePathAux], img_id: int):
         """
         Adds a new Image object to the ImageList.
 
