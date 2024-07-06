@@ -1,5 +1,5 @@
 from datetime import datetime
-from pathlib import Path
+from pathlib import Path, PosixPath
 from typing import Tuple, Union
 
 import cv2
@@ -385,10 +385,14 @@ class Image:
         )
         return K
 
-class ImagePathAux(Path):
-    def __init__(self, image_path: Path, aux: dict=None):
-        super().__init__(image_path)
-        self.aux = aux if aux is not None else {}
+class ImagePathAux(PosixPath):
+    def __new__(cls, *args, **kwargs):
+        kwargs.pop("aux", None)
+        obj = super().__new__(cls, *args, **kwargs)
+        return obj
+
+    def __init__(self, image_path: Path, aux: dict = None):
+        self.aux = aux or {}
 
     @property
     def mask(self):
