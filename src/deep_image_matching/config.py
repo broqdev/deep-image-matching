@@ -259,6 +259,7 @@ class Config:
         "force": True,
         "verbose": False,
         "graph": True,
+        "mask_type": 'fg',
     }
     cfg = {
         "general": {},
@@ -408,6 +409,11 @@ class Config:
                     f"Invalid images folder {args['images']}. Direcotry does not exist"
                 )
 
+        if args["masks"] is None:
+            args["masks"] = args["dir"] / "masks"
+        else:
+            args["masks"] = Path(args["masks"])
+
         # if output folder is not provided, use the default one
         if args["outs"] is None:
             args["outs"] = (
@@ -530,6 +536,8 @@ class Config:
             "skip_reconstruction": args["skip_reconstruction"],
             "openmvg_conf": args["openmvg"],
             "camera_options": args["camera_options"],
+            "mask_dir": args["masks"],
+            "mask_type": args["mask_type"],
         }
 
         return cfg

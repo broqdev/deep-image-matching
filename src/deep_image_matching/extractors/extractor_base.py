@@ -9,7 +9,7 @@ import numpy as np
 import torch
 
 from .. import Quality, TileSelection, get_size_by_quality, logger
-from ..utils.image import Image, resize_image
+from ..utils.image import Image, ImagePathAux, resize_image
 from ..utils.tiling import Tiler
 
 
@@ -171,12 +171,16 @@ class ExtractorBase(metaclass=ABCMeta):
                 List of features extracted from the image. Each feature is a 2D NumPy array
         """
 
+        mask = None
         if isinstance(img, str):
             im_path = Path(img)
         elif isinstance(img, Image):
             im_path = img.path
         elif isinstance(img, Path):
             im_path = img
+        elif isinstance(img, ImagePathAux):
+            im_path = img
+            mask = img.mask
         else:
             raise TypeError(
                 "Invalid image path. 'img' must be a string, a Path or an Image object"
@@ -196,10 +200,11 @@ class ExtractorBase(metaclass=ABCMeta):
 
         # Resize images if needed
         image_ = self._resize_image(self._quality, image, interp=self.interp)
+        mask_ = self._resize_image(self._quality, mask, interp=self.interp) if mask is not None else None
 
         if self._config["general"]["tile_selection"] == TileSelection.NONE:
             # Extract features from the whole image
-            features = self._extract(image_)
+            features = self._extract(image_, mask_)
             # features["feature_path"] = str(feature_path)
             # features["im_path"] = str(im_path)
             features["tile_idx"] = np.zeros(
@@ -208,7 +213,7 @@ class ExtractorBase(metaclass=ABCMeta):
 
         else:
             # Extract features by tiles
-            features = self._extract_by_tile(image_, select_unique=True)
+            features = self._extract_by_tile(image_, mask_, select_unique=True)
             # features["feature_path"] = str(feature_path)
             # features["im_path"] = str(im_path)
         logger.debug(f"Extracted {len(features['keypoints'])} keypoints")
@@ -244,7 +249,7 @@ class ExtractorBase(metaclass=ABCMeta):
         return feature_path
 
     @abstractmethod
-    def _extract(self, image: np.ndarray) -> dict:
+    def _extract(self, image: np.ndarray, mask: np.ndarray) -> dict:
         """
         Extract features from an image. This is called by ` extract ` method to extract features from the image. This method must be implemented by subclasses.
 
@@ -269,7 +274,7 @@ class ExtractorBase(metaclass=ABCMeta):
             "Subclasses should implement _frame2tensor method to adapt the input image to the required format!"
         )
 
-    def _extract_by_tile(self, image: np.ndarray, select_unique: bool = True):
+    def _extract_by_tile(self, image: np.ndarray, mask: np.ndarray, select_unique: bool = True):
         """
         Extract features from an image by tiles. This is called by :meth:`extract` to extract features from the image.
 
@@ -280,6 +285,13 @@ class ExtractorBase(metaclass=ABCMeta):
         # Compute tiles limits
         tile_size = self._config["general"]["tile_size"]
         overlap = self._config["general"]["tile_overlap"]
+        mask_dim = 0
+        if mask is not None:
+            if len(mask.shape) == 2:
+                mask = mask[:, :, None]
+
+            mask_dim = mask.shape[2]
+            image = np.concatenate((image, mask), axis=2)
         tiler = Tiler(tiling_mode="size")
         tiles, tiles_origins, padding = tiler.compute_tiles_by_size(
             input=image, window_size=tile_size, overlap=overlap
@@ -298,7 +310,10 @@ class ExtractorBase(metaclass=ABCMeta):
             logger.debug(f"  - Extracting features from tile: {idx}")
 
             # Extract features in tile
-            feat_tile = self._extract(tile)
+            if mask_dim > 0:
+                tile = tile[:, :, :-mask_dim]
+                tile_mask = tile[:, :, -mask_dim:]
+            feat_tile = self._extract(tile, tile_mask)
             kp_tile = feat_tile["keypoints"]
             des_tile = feat_tile["descriptors"]
             if "scores" in feat_tile:

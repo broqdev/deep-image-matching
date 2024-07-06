@@ -144,6 +144,21 @@ def parse_cli() -> dict:
         help="Path to camera options yaml file, e.g. config/cameras.yaml",
         default="./config/cameras.yaml",
     )
+    parser.add_argument(
+        "-m",
+        "--masks",
+        type=str,
+        help="Folder containing masks to process. If not specified, an 'masks' folder inside the project folder is assumed.",
+        default=None,
+    )
+    parser.add_argument(
+        "-mt",
+        "--mask_type",
+        type=str,
+        choices=["fg"],
+        default="fg",
+        help="Set the mask type. 'fg' for foreground mask.",
+    )
     args = parser.parse_args()
 
     if args.gui is True:

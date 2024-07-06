@@ -29,7 +29,7 @@ class KeyNet(ExtractorBase):
         )
 
     @torch.no_grad()
-    def _extract(self, image: np.ndarray) -> np.ndarray:
+    def _extract(self, image: np.ndarray, mask: np.ndarray) -> np.ndarray:
         image = K.image_to_tensor(image, False).float() / 255.0
         if self._device == "cpu":
             image = image.cpu()

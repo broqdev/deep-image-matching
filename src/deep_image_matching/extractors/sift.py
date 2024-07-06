@@ -32,7 +32,7 @@ class SIFTExtractor(ExtractorBase):
             sigma=cfg["sigma"],
         )
 
-    def _extract(self, image: np.ndarray) -> np.ndarray:
+    def _extract(self, image: np.ndarray, mask: np.ndarray) -> np.ndarray:
         kp, des = self._extractor.detectAndCompute(image, None)
         if kp:
             kpts = cv2.KeyPoint_convert(kp)

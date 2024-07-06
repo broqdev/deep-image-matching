@@ -96,6 +96,8 @@ class ImageMatching:
         overlap: int = None,
         existing_colmap_model: Path = None,
         custom_config: dict = {},
+        masks_dir: Path = None,
+        mask_type: str = "fg",
     ):
         """
         Initializes the ImageMatching class.
@@ -124,6 +126,8 @@ class ImageMatching:
             None
         """
         self.image_dir = Path(imgs_dir)
+        self.masks_dir = Path(masks_dir) if masks_dir else None
+        self.mask_type = mask_type
         self.output_dir = Path(output_dir)
         self.matching_strategy = matching_strategy
         self.retrieval_option = retrieval_option
@@ -166,7 +170,7 @@ class ImageMatching:
                     )
 
         # Initialize ImageList class
-        self.image_list = ImageList(imgs_dir)
+        self.image_list = ImageList(imgs_dir, self.masks_dir, mask_type)
         images = self.image_list.img_names
         if len(images) == 0:
             raise ValueError(f"Image folder empty. Supported formats: {self.image_ext}")

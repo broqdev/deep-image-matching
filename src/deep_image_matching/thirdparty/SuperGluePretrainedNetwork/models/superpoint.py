@@ -179,6 +179,11 @@ class SuperPoint(nn.Module):
         scores = scores.permute(0, 1, 3, 2, 4).reshape(b, h * 8, w * 8)
         scores = simple_nms(scores, self.config["nms_radius"])
 
+        # mask is treated as weights
+        mask = data.get("mask", None)
+        if mask is not None:
+            scores = scores * mask
+
         # Extract keypoints
         keypoints = [
             torch.nonzero(s > self.config["keypoint_threshold"]) for s in scores

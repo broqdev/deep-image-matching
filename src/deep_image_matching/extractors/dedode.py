@@ -75,7 +75,7 @@ class DeDoDe(ExtractorBase):
         self.num_features = cfg["n_features"]
 
     @torch.no_grad()
-    def _extract(self, image: np.ndarray) -> np.ndarray:
+    def _extract(self, image: np.ndarray, mask: np.ndarray) -> np.ndarray:
         H, W, C = image.shape
         resized_image = cv2.resize(image, (784, 784))
         standard_im = np.array(resized_image) / 255.0

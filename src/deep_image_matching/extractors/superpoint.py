@@ -105,7 +105,7 @@ class SuperPointExtractor(ExtractorBase):
         self._extractor = SuperPoint(SP_cfg).eval().to(self._device)
 
     @torch.no_grad()
-    def _extract(self, image: np.ndarray) -> np.ndarray:
+    def _extract(self, image: np.ndarray, mask: np.ndarray) -> np.ndarray:
         """
         Extract features from an image using the SuperPoint model.
 
@@ -118,9 +118,10 @@ class SuperPointExtractor(ExtractorBase):
         """
         # Convert image from numpy array to tensor
         image_ = self._frame2tensor(image, self._device)
+        mask_ = self._frame2tensor(mask, self._device) if mask is not None else None
 
         # Extract features
-        feats = self._extractor({"image": image_})
+        feats = self._extractor({"image": image_, "mask": mask_})
 
         # Remove elements from list/tuple
         feats = {

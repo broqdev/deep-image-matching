@@ -34,7 +34,7 @@ class AlikeExtractor(ExtractorBase):
         )
 
     @torch.no_grad()
-    def _extract(self, image: np.ndarray) -> np.ndarray:
+    def _extract(self, image: np.ndarray, mask: np.ndarray) -> np.ndarray:
         # Extract features
         feats = self._extractor(image, sub_pixel=True)
 

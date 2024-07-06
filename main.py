@@ -17,6 +17,7 @@ config = Config(args)
 # For simplicity, save some of the configuration parameters in variables.
 imgs_dir = config.general["image_dir"]
 output_dir = config.general["output_dir"]
+masks_dir = config.general["mask_dir"]
 
 # Initialize ImageMatching class
 img_matching = ImageMatching(

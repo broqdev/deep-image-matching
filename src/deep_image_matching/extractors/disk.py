@@ -29,7 +29,7 @@ class DiskExtractor(ExtractorBase):
         self._extractor = DISK(disk_cfg).eval().to(self._device)
 
     @torch.no_grad()
-    def _extract(self, image: np.ndarray) -> np.ndarray:
+    def _extract(self, image: np.ndarray, mask: np.ndarray) -> np.ndarray:
         # Convert image from numpy array to tensor
         image_ = self._frame2tensor(image, self._device)
 

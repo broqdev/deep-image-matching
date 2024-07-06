@@ -385,6 +385,34 @@ class Image:
         )
         return K
 
+class ImagePathAux(Path):
+    def __init__(self, image_path: Path, aux: dict=None):
+        super().__init__(image_path)
+        self.aux = aux if aux is not None else {}
+
+    @property
+    def mask(self):
+        return self.aux.get("mask", None)
+
+def _load_masks(mask_dir: Path, mask_type: str):
+    if mask_dir is None:
+        return {}
+
+    mask_paths = mask_dir.glob("*")
+    mask_paths = [(p.stem, p) for p in mask_dir.glob("*") if p.suffix in IMAGE_EXT]
+    logger.info(f"Found {len(mask_paths)} masks in {mask_dir}")
+
+    def _convert_mask(mask_path, mask_type):
+        if mask_type == "fg":
+            mask_img = cv2.imread(mask_path, cv2.IMREAD_GRAYSCALE)
+            mask_bool = ~(mask_img > 0)
+            mask = np.expand_dims(mask_bool, axis=-1).astype(np.uint8) * 255
+            return mask
+        else:
+            raise ValueError(f"Unknown mask type {mask_type}")
+
+    masks = [(name, _convert_mask(path, mask_type)) for name, path in mask_paths]
+    return dict(masks)
 
 class ImageList:
     """
@@ -396,7 +424,7 @@ class ImageList:
 
     IMAGE_EXT = IMAGE_EXT
 
-    def __init__(self, img_dir: Path):
+    def __init__(self, img_dir: Path, mask_dir: Path = None, mask_type: str = 'fg'):
         """
         Initializes an ImageList object
 
@@ -424,8 +452,14 @@ class ImageList:
         if len(all_imgs) == 0:
             raise ValueError(f"{img_dir} does not contain any image")
 
+        masks = _load_masks(mask_dir, mask_type)
         for image in all_imgs:
-            self.add_image(image, i)
+            mask = masks.get(image.stem, None)
+            if len(masks) > 0 and mask is None:
+                logger.warning(f"Mask not found for {image}")
+
+            image_aux = ImagePathAux(image, aux={"mask": mask})
+            self.add_image(image_aux, i)
             i += 1
 
     def __len__(self):

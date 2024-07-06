@@ -43,7 +43,7 @@ class AlikedExtractor(ExtractorBase):
             self._extractor = ALIKED(**cfg)
 
     @torch.no_grad()
-    def _extract(self, image: np.ndarray) -> np.ndarray:
+    def _extract(self, image: np.ndarray, mask: np.ndarray) -> np.ndarray:
         image_ = self._frame2tensor(image, self._device)
 
         # Extract features

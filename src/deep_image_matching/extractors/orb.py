@@ -40,7 +40,7 @@ class ORBExtractor(ExtractorBase):
             fastThreshold=cfg["fastThreshold"],
         )
 
-    def _extract(self, image: np.ndarray) -> np.ndarray:
+    def _extract(self, image: np.ndarray, mask: np.ndarray) -> np.ndarray:
         kp = self._extractor.detect(image, None)
         kp, des = self._extractor.compute(image, kp)
         if kp:
