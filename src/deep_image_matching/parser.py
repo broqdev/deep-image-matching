@@ -155,7 +155,7 @@ def parse_cli() -> dict:
         "-mt",
         "--mask_type",
         type=str,
-        choices=["fg"],
+        choices=["fg", "bg"],
         default="fg",
         help="Set the mask type. 'fg' for foreground mask.",
     )

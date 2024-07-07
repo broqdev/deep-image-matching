@@ -92,6 +92,10 @@ def _load_masks(mask_dir: Path, mask_type: str):
             mask_bool = ~(mask_img > 0)
             mask = np.expand_dims(mask_bool, axis=-1).astype(np.uint8) * 255
             return mask
+        elif mask_type == "bg":
+            mask_img = cv2.imread(mask_path, cv2.IMREAD_GRAYSCALE)
+            mask = np.expand_dims(mask_img, axis=-1)
+            return mask
         else:
             raise ValueError(f"Unknown mask type {mask_type}")
 
