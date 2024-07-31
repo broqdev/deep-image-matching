@@ -207,6 +207,8 @@ class MatcherBase(metaclass=ABCMeta):
         img0: Path,
         img1: Path,
         try_full_image: bool = False,
+        mask0: np.ndarray = None,
+        mask1: np.ndarray = None,
     ) -> np.ndarray:
         """
         Match features between two images.
@@ -660,6 +662,8 @@ class DetectorFreeMatcherBase(metaclass=ABCMeta):
         img0: Path,
         img1: Path,
         try_full_image: bool = False,
+        mask0: np.ndarray = None,
+        mask1: np.ndarray = None,
     ) -> np.ndarray:
         """
         Match features between two images.
@@ -693,7 +697,7 @@ class DetectorFreeMatcherBase(metaclass=ABCMeta):
 
         # Perform matching
         if self._tiling == TileSelection.NONE:
-            matches = self._match_pairs(self._feature_path, img0, img1)
+            matches = self._match_pairs(self._feature_path, img0, img1, mask0, mask1)
             timer_match.update("[match] Match full images")
         else:
             matches = self._match_by_tile(
@@ -713,6 +717,9 @@ class DetectorFreeMatcherBase(metaclass=ABCMeta):
         img_shape = cv2.imread(str(img0)).shape
         scale_fct = np.floor(max(img_shape) / self.max_tile_size / 2)
         gv_threshold = self._config["general"]["gv_threshold"] * scale_fct
+
+        logger.error(888)
+        logger.error(matches.shape)
 
         # Apply geometric verification
         _, inlMask = geometric_verification(
@@ -760,6 +767,8 @@ class DetectorFreeMatcherBase(metaclass=ABCMeta):
         feature_path: Path,
         img0_path: Path,
         img1_path: Path,
+        mask0: np.ndarray = None,
+        mask1: np.ndarray = None,
     ):
         """
         Perform matching between two images using a detector-free matcher. It takes the path to two images, and returns the matches between keypoints and descriptors in those images. It also saves the updated features to the specified h5 file. This method must be implemented by subclasses.
@@ -833,7 +842,7 @@ class DetectorFreeMatcherBase(metaclass=ABCMeta):
 
     def _resize_image(
         self, quality: Quality, image: np.ndarray, interp: str = "cv2_area"
-    ) -> Tuple[np.ndarray]:
+    ) -> np.ndarray:
         """
         Resize images based on the specified quality.
 
@@ -842,7 +851,7 @@ class DetectorFreeMatcherBase(metaclass=ABCMeta):
             image (np.ndarray): The first image.
 
         Returns:
-            Tuple[np.ndarray]: Resized images.
+            np.ndarray: Resized images.
 
         """
         # If quality is HIGHEST, force interpolation to cv2_cubic

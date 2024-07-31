@@ -53,6 +53,8 @@ class RomaMatcher(DetectorFreeMatcherBase):
         img0: Path,
         img1: Path,
         try_full_image: bool = False,
+        mask0: np.ndarray = None,
+        mask1: np.ndarray = None,
     ):
         """
         Match features between two images.

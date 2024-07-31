@@ -247,7 +247,7 @@ class ExtractorBase(metaclass=ABCMeta):
         return feature_path
 
     @abstractmethod
-    def _extract(self, image: np.ndarray, mask: np.ndarray) -> dict:
+    def _extract(self, image: np.ndarray, mask: np.ndarray = None) -> dict:
         """
         Extract features from an image. This is called by ` extract ` method to extract features from the image. This method must be implemented by subclasses.
 

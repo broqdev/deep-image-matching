@@ -4,6 +4,8 @@ import kornia as K
 import numpy as np
 import torch
 from kornia import feature as KF
+from kornia.feature.loftr.loftr import default_cfg as loftr_default_cfg
+from copy import deepcopy
 
 from .. import TileSelection, Timer, logger
 from ..utils.tiling import Tiler
@@ -51,7 +53,9 @@ class LOFTRMatcher(DetectorFreeMatcherBase):
         super().__init__(config)
 
         model = config["matcher"]["pretrained"]
-        self.matcher = KF.LoFTR(pretrained=model).to(self._device).eval()
+        loftr_config = deepcopy(loftr_default_cfg)
+        loftr_config['match_coarse']['thr'] = 0.1
+        self.matcher = KF.LoFTR(pretrained=model, config=loftr_config).to(self._device).eval()
 
         tile_size = self._config["general"]["tile_size"]
         if max(tile_size) > self.max_tile_size:
@@ -74,6 +78,8 @@ class LOFTRMatcher(DetectorFreeMatcherBase):
         feature_path: Path,
         img0_path: Path,
         img1_path: Path,
+        mask0: np.ndarray = None,
+        mask1: np.ndarray = None,
     ):
         """
         Perform matching between two images using a detector-free matcher. It takes in two images as Numpy arrays, and returns the matches between keypoints and descriptors in those images. It also saves the updated features to the specified h5 file.
@@ -89,7 +95,6 @@ class LOFTRMatcher(DetectorFreeMatcherBase):
         Raises:
             torch.cuda.OutOfMemoryError: If an out-of-memory error occurs while matching images.
         """
-
         img0_name = img0_path.name
         img1_name = img1_path.name
 
@@ -105,10 +110,28 @@ class LOFTRMatcher(DetectorFreeMatcherBase):
         timg0_ = self._frame2tensor(image0_, self._device)
         timg1_ = self._frame2tensor(image1_, self._device)
 
+        if mask0 is not None:
+            mask0_ = self._resize_image(self._quality, mask0)
+            tmask0_ = self._frame2tensor(mask0_, self._device)
+            tmask0_ = tmask0_.squeeze(1)
+        else:
+            tmask0_ = None
+        
+        if mask1 is not None:
+            mask1_ = self._resize_image(self._quality, mask1)
+            tmask1_ = self._frame2tensor(mask1_, self._device)
+            tmask1_ = tmask1_.squeeze(1)
+        else:
+            tmask1_ = None
+
         # Run inference
         try:
             with torch.inference_mode():
                 input_dict = {"image0": timg0_, "image1": timg1_}
+                if tmask0_ is not None:
+                    input_dict["mask0"] = tmask0_
+                if tmask1_ is not None:
+                    input_dict["mask1"] = tmask1_
                 correspondences = self.matcher(input_dict)
         except torch.cuda.OutOfMemoryError as e:
             logger.error(
@@ -123,6 +146,8 @@ class LOFTRMatcher(DetectorFreeMatcherBase):
         # Retrieve original image coordinates if matching was performed on up/down-sampled images
         mkpts0 = self._resize_keypoints(self._quality, mkpts0)
         mkpts1 = self._resize_keypoints(self._quality, mkpts1)
+        logger.error(777)
+        logger.error(mkpts0.shape)
 
         # Get match confidence
         mconf = correspondences["confidence"].cpu().numpy()
@@ -165,6 +190,7 @@ class LOFTRMatcher(DetectorFreeMatcherBase):
         Returns:
             np.ndarray: Array containing the indices of matched keypoints.
         """
+        logger.error(222)
 
         timer = Timer(log_level="debug", cumulate_by_key=True)
 

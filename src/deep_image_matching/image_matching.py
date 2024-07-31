@@ -24,7 +24,7 @@ from .io.h5 import get_features
 from .matchers.lightglue import LightGlueMatcher
 from .matchers.matcher_base import matcher_loader
 from .pairs_generator import PairsGenerator
-from .utils.image import ImageList
+from .utils.image import ImageList, ImagePathAux
 
 
 def make_correspondence_matrix(matches: np.ndarray) -> np.ndarray:
@@ -425,7 +425,13 @@ class ImageMatching:
             im0 = self.image_dir / name0
             im1 = self.image_dir / name1
 
+            mask0 = pair[0].mask if isinstance(pair[0], ImagePathAux) else None
+            mask1 = pair[1].mask if isinstance(pair[1], ImagePathAux) else None
+            # mask0 = None
+            # mask1 = None
+
             logger.debug(f"Matching image pair: {name0} - {name1}")
+            logger.debug(f"Matching image pair mask: {mask0 is not None} - {mask1 is not None}")
 
             # Run matching
             self._matcher.match(
@@ -434,6 +440,8 @@ class ImageMatching:
                 img0=im0,
                 img1=im1,
                 try_full_image=try_full_image,
+                mask0=mask0,
+                mask1=mask1,
             )
             timer.update("Match pair")
 
