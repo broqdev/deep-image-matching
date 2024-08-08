@@ -45,9 +45,10 @@ class AlikedExtractor(ExtractorBase):
     @torch.no_grad()
     def _extract(self, image: np.ndarray, mask: np.ndarray) -> np.ndarray:
         image_ = self._frame2tensor(image, self._device)
+        mask_ = self._frame2tensor(mask, self._device) if mask is not None else None
 
         # Extract features
-        feats = self._extractor({"image": image_})
+        feats = self._extractor({"image": image_, "mask": mask_})
 
         # Remove batch dimension from elements in feats
         feats = self._rbd(feats)

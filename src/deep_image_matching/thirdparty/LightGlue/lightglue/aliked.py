@@ -43,6 +43,7 @@ from torch.nn.modules.utils import _pair
 from torchvision.models import resnet
 
 from .utils import Extractor
+from loguru import logger
 
 
 def get_patches(
@@ -751,8 +752,23 @@ class ALIKED(Extractor):
         wh = torch.tensor([w - 1, h - 1], device=image.device)
         # no padding required
         # we can set detection_threshold=-1 and conf.max_num_keypoints > 0
+
+        keypoints_ = wh * (torch.stack(keypoints) + 1) / 2.0
+        kptscores_ = torch.stack(kptscores)
+        mask = data.get("mask", None)
+        if mask is not None:
+            #logger.info(f"111 {keypoints_.shape=}")
+            #logger.info(f"112 {mask.shape=}")
+            for b, kpt in enumerate(keypoints_.to(torch.int)):
+                #logger.info(f"{b} {kpt.shape=} {kpt.min(dim=0)} {kpt.max(dim=0)}")
+                mask_ = mask[b, 0, kpt[:, 1], kpt[:, 0]].bool()
+                #logger.info(f"113 {mask_=}")
+                # tmp = ~(mask_ > 0)
+                # logger.info(f"114 {tmp=} {type(tmp)}")
+                kptscores_[b, mask_] = 0
+
         return {
-            "keypoints": wh * (torch.stack(keypoints) + 1) / 2.0,  # B x N x 2
+            "keypoints": keypoints_,  # B x N x 2
             "descriptors": torch.stack(descriptors),  # B x N x D
-            "keypoint_scores": torch.stack(kptscores),  # B x N
+            "keypoint_scores": kptscores_,  # B x N
         }
